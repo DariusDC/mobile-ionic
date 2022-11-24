@@ -1,9 +1,9 @@
 import { Hotel } from "../../models/Hotel";
 import axios from "axios";
 import { Room } from "../../models/Room";
-import { getLogger } from "../../core";
+import { authConfig, getLogger } from "../../core";
 
-const baseUrl = "http://localhost:8080";
+const baseUrl = "http://localhost:3000/api/item";
 const log = getLogger;
 
 interface ResponseProps<T> {
@@ -32,29 +32,29 @@ const config = {
   },
 };
 
-export const getItems: () => Promise<Hotel[]> = () => {
+export const getItems: (token?: string) => Promise<Hotel[]> = token => {
   return withLogs(
     axios
-      .get(`${baseUrl}/hotels/`, config)
+      .get(`${baseUrl}/`, authConfig(token))
       .then((response) => {
         const { data } = response;
-        console.log(data);
-
         const hotels: Hotel[] = [];
         data.forEach((h: any) => {
-          hotels.push(
+          hotels.push(  
             new Hotel(
-              h.id.toString(),
+              h._id.toString(),
               h.name,
               h.imageURL,
               h.price,
               h.description,
               h.added,
-              h.available
+              h.available,
+              h.lat,
+              h.lng
             )
           );
+          
         });
-        console.log(hotels);
         return Promise.resolve({ data: hotels });
       })
       .catch((err) => {
@@ -64,10 +64,12 @@ export const getItems: () => Promise<Hotel[]> = () => {
   );
 };
 
-export const createItem: (hotel: Hotel) => Promise<Hotel> = (item) => {
+export const createItem: (token: string, hotel: Hotel) => Promise<Hotel> = (token, item) => {
+  console.log(token);
+  
   return withLogs(
     axios
-      .post(`${baseUrl}/hotels/`, item.toJson())
+      .post(`${baseUrl}/`, item.toJson(), authConfig(token))
       .then(({ data: h }) =>
         Promise.resolve({
           data: new Hotel(
@@ -84,14 +86,14 @@ export const createItem: (hotel: Hotel) => Promise<Hotel> = (item) => {
       .catch((err) => Promise.reject(err)),
     "create item"
   );
-};
+};  
 
-export const updateItem: (hotel: Hotel) => Promise<Hotel> = (item) => {
+export const updateItem: (token: string, hotel: Hotel) => Promise<Hotel> = (token, item) => {
   console.log(item);
 
   return withLogs(
     axios
-      .patch(`${baseUrl}/hotels/${item.id}`, item.toJson())
+      .put(`${baseUrl}/${item._id}`, item.toJson(), authConfig(token))
       .then(({ data: h }) =>
         Promise.resolve({
           data: new Hotel(
@@ -101,7 +103,9 @@ export const updateItem: (hotel: Hotel) => Promise<Hotel> = (item) => {
             h.price,
             h.description,
             h.added,
-            h.available
+            h.available,
+            h.lat,
+            h.lng
           ),
         })
       )
@@ -110,10 +114,11 @@ export const updateItem: (hotel: Hotel) => Promise<Hotel> = (item) => {
   );
 };
 
-export const newWebSocket = (onMessage: (data: any) => void) => {
+export const newWebSocket = (token: string, onMessage: (data: any) => void) => {
   const ws = new WebSocket(`ws://localhost:3000/`);
   ws.onopen = () => {
     log("web socket onopen");
+    ws.send(JSON.stringify({type: "Authorization", payload: {token}}));
   };
   ws.onclose = () => {
     log("web socket onclose");

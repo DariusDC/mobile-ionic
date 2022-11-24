@@ -23,21 +23,28 @@ import "@ionic/react/css/display.css";
 import "./theme/variables.css";
 import HotelDetails from "./pages/hotel/HotelDetails";
 import { HotelItemsProvider } from "./providers/HotelItemsProvider";
+import { AuthProvider } from "./providers/AuthProvider";
+import { Login } from "./pages/login/login";
+import { PrivateRoute } from "./pages/login/PrivateRoute";
 
 setupIonicReact();
 
 const App: React.FC = () => (
   <IonApp>
-    <HotelItemsProvider>
-      <IonReactRouter>
-        <IonRouterOutlet>
-          <Route exact path="/home" component={HotelList} />
-          <Route exact path="/item" component={HotelDetails} />
-          <Route exact path="/item/:id" component={HotelDetails} />
-          <Route exact path="/" render={() => <Redirect to="/home" />} />
-        </IonRouterOutlet>
-      </IonReactRouter>
-    </HotelItemsProvider>
+    <IonReactRouter>
+      <IonRouterOutlet>
+
+        <AuthProvider>
+          <Route path="/login" component={Login} exact={true} />
+          <HotelItemsProvider>
+            <PrivateRoute path="/home" component={HotelList} exact={true} />
+            <PrivateRoute path="/" component={HotelList} exact={true} />
+            <PrivateRoute path="/item" component={HotelDetails} exact={true} />
+            <PrivateRoute path="/item/:id" component={HotelDetails} exact={true} />
+          </HotelItemsProvider>
+        </AuthProvider>
+      </IonRouterOutlet>
+    </IonReactRouter>
   </IonApp>
 );
 
